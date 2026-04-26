@@ -1,0 +1,23 @@
+[
+  {
+    "scenario_name": "Positive review",
+    "endpoint": "/predict",
+    "method": "POST",
+    "payload": {"full_text": "Amazing beauty product, highly recommend!"},
+    "expected_status": 200
+  },
+  {
+    "scenario_name": "Negative review",
+    "endpoint": "/predict",
+    "method": "POST",
+    "payload": {"full_text": "Terrible product. Arrived broken and smells bad."},
+    "expected_status": 200
+  },
+  {
+    "scenario_name": "Empty query",
+    "endpoint": "/predict",
+    "method": "POST",
+    "payload": {},
+    "expected_status": 422
+  }
+]

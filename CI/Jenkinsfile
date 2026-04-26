@@ -1,0 +1,87 @@
+pipeline {
+    agent any
+
+    environment {
+        DOCKERHUB = credentials('dockerhub-creds')
+        
+        MINIO_SECRET = credentials('minio-secret-key')
+        
+        IMAGE_NAME = "amazon-rating-prediction"
+        IMAGE_TAG = "pr-${env.BUILD_NUMBER}"
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Pull Model from DVC') {
+            steps {
+                sh '''
+                    rm -rf dvc-venv
+
+                    python3 -m venv dvc-venv
+                    ls -la dvc-venv/bin/
+                    . dvc-venv/bin/activate
+                    which pip || echo "PIP NOT FOUND"
+                    ./dvc-venv/bin/pip install dvc[s3]
+                    
+                    dvc remote modify --local myminio access_key_id admin_dvc
+                    dvc remote modify --local myminio secret_access_key $MINIO_SECRET
+                    dvc remote modify --local myminio endpointurl http://minio:9000
+                    dvc pull
+                '''
+            }
+        }
+
+        stage('Run Integration Tests') {
+            steps {
+                echo "Run tests..."
+                sh '''
+                    . dvc-venv/bin/activate
+                    pip install -r requirements.txt
+                    pip install pytest httpx
+                    
+                    pytest tests/
+                '''
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                echo "Build Image ${IMAGE_NAME}:${IMAGE_TAG}..."
+                
+                sh 'docker build -t $DOCKERHUB_USR/$IMAGE_NAME:$IMAGE_TAG .'
+                sh 'docker tag $DOCKERHUB_USR/$IMAGE_NAME:$IMAGE_TAG $DOCKERHUB_USR/$IMAGE_NAME:latest'
+            }
+        }
+
+        stage('Push to DockerHub') {
+            steps {
+                echo "Authorization and sending to DockerHub..."
+                
+                sh 'echo $DOCKERHUB_PSW | docker login -u $DOCKERHUB_USR --password-stdin'
+                
+                sh 'docker push $DOCKERHUB_USR/$IMAGE_NAME:$IMAGE_TAG'
+                sh 'docker push $DOCKERHUB_USR/$IMAGE_NAME:latest'
+            }
+        }
+    }
+
+    post {
+        always {
+            echo "Cleanup..."
+            sh 'docker rmi ${IMAGE_NAME}:${IMAGE_TAG} || true'
+            sh 'docker logout || true'
+        }
+        success {
+            echo "Pipeline done! Image in DockerHub."
+            build job: 'amazon-rating-prediction-2-CD', wait: true
+        }
+        failure {
+            echo "Pipeline failure."
+        }
+    }
+}

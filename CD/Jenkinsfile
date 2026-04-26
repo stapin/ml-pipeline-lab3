@@ -1,0 +1,66 @@
+pipeline {
+    agent any
+
+    environment {
+        DOCKERHUB = credentials('dockerhub-creds')
+        DB = credentials('oracle-db-creds')
+        IMAGE_NAME = "amazon-rating-prediction"
+        DB_CONTAINER_NAME = "oracle-test-db"
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Deploy Container Locally') {
+            steps {
+                sh "docker rm -f $DB_CONTAINER_NAME || true"
+                
+                sh "docker pull $DOCKERHUB_USR/$IMAGE_NAME:latest"
+                
+                echo "Starting infrastructure and waiting for healthchecks..."
+                withEnv(["API_IMAGE=$DOCKERHUB_USR/$IMAGE_NAME:latest"]) {
+                    sh "docker compose up -d --no-build --wait"
+                }
+            }
+        }
+
+        stage('Run Scenario Tests') {
+            steps {
+                script {
+                    def CONTAINER_IP = sh(script: "docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' rating-prediction", returnStdout: true).trim()
+                    
+                    echo "API Container IP is: ${CONTAINER_IP}"
+                    
+                    withEnv(["API_URL=http://${CONTAINER_IP}:8000"]) {
+                        sh '''
+                            python3 -m venv venv-cd
+                            . venv-cd/bin/activate
+                            pip install requests
+                            
+                            python3 tests/run_scenario.py
+                        '''
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "CD pipline tests successfully done!"
+        }
+        failure {
+            echo "Tests failed!"
+            sh "docker compose logs $IMAGE_NAME || true"
+            sh "docker compose logs oracle-db || true"
+        }
+        cleanup {
+            sh "docker compose down -v || true"
+            sh "docker logout || true"
+        }
+    }
+}

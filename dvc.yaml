@@ -1,0 +1,35 @@
+stages:
+  prepare:
+    cmd: python src/prepare.py
+    deps:
+      - src/prepare.py
+      - data/All_Beauty.jsonl
+    params:
+      - prepare.test_size
+      - prepare.random_state
+    outs:
+      - data/prepared/train.csv
+      - data/prepared/test.csv
+
+  train:
+    cmd: python src/train.py
+    deps:
+      - src/train.py
+      - data/prepared/train.csv
+      - data/prepared/test.csv
+    params:
+      - train.iterations
+      - train.learning_rate
+      - train.early_stopping_rounds
+    outs:
+      - models/model.cbm
+
+  evaluate:
+    cmd: python src/evaluate.py
+    deps:
+      - src/evaluate.py
+      - data/prepared/test.csv
+      - models/model.cbm
+    metrics:
+      - metrics.json:
+          cache: false
