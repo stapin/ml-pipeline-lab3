@@ -1,17 +1,30 @@
-import os
 import oracledb
-from dotenv import load_dotenv
-
-load_dotenv()
+from ansible_vault import Vault
+import yaml
 
 class OracleDBManager:
-    def __init__(self):
-        self.user = os.getenv("DB_USER")
-        self.password = os.getenv("DB_PASSWORD")
-        self.host = os.getenv("DB_HOST", "localhost")
-        self.port = os.getenv("DB_PORT", "1521")
-        self.service = os.getenv("DB_SERVICE", "FREEPDB1")
+    def __init__(self, vault_path: str = "secrets.vault", vault_pass_path: str = "vault_pass.txt"):
+        self.secrets = self._load_secrets(vault_path, vault_pass_path)
+
+        self.user = self.secrets.get("DB_USER")
+        self.password = self.secrets.get("DB_PASSWORD")
+        self.host = self.secrets.get("DB_HOST", "localhost")
+        self.port = self.secrets.get("DB_PORT", "1521")
+        self.service = self.secrets.get("DB_SERVICE", "FREEPDB1")
         self.dsn = f"{self.host}:{self.port}/{self.service}"
+
+    def _load_secrets(self, vault_path: str, vault_pass_path: str) -> dict:
+        try:
+            with open(vault_pass_path, 'r') as f:
+                vault_pass = f.read().strip()
+            
+            vault = Vault(vault_pass)
+            with open(vault_path, 'r') as f:
+                decrypted_data = vault.load(f.read())
+                
+            return yaml.safe_load(decrypted_data)
+        except Exception as e:
+            raise RuntimeError(f"Error reading secret storage: {e}")
 
     def _get_connection(self):
         return oracledb.connect(
@@ -38,7 +51,7 @@ class OracleDBManager:
                     """)
                     conn.commit()
                 except oracledb.DatabaseError as e:
-                    print(f"Ошибка при инициализации базы данных: {e}")
+                    print(f"Error during database initialization: {e}")
 
     def save_prediction(self, text_content: str, predicted_rating: float) -> int:
         with self._get_connection() as conn:

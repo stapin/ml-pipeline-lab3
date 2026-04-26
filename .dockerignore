@@ -1,0 +1,9 @@
+.venv/
+.dvc/
+.vscode/
+
+.git
+.gitignore
+
+vault_pass.txt
+

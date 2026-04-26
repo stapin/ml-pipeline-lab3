@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         DOCKERHUB = credentials('dockerhub-creds')
-        DB = credentials('oracle-db-creds')
+        VAULT_PASS = credentials('ansible-vault-pass')
         IMAGE_NAME = "amazon-rating-prediction"
         DB_CONTAINER_NAME = "oracle-test-db"
     }
@@ -20,6 +20,8 @@ pipeline {
                 sh "docker rm -f $DB_CONTAINER_NAME || true"
                 
                 sh "docker pull $DOCKERHUB_USR/$IMAGE_NAME:latest"
+
+                sh 'echo "$VAULT_PASS" > vault_pass.txt'
                 
                 echo "Starting infrastructure and waiting for healthchecks..."
                 withEnv(["API_IMAGE=$DOCKERHUB_USR/$IMAGE_NAME:latest"]) {
@@ -60,6 +62,7 @@ pipeline {
         }
         cleanup {
             sh "docker compose down -v || true"
+            sh "rm -f vault_pass.txt || true"
             sh "docker logout || true"
         }
     }

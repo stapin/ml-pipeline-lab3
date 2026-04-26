@@ -3,8 +3,8 @@ pipeline {
 
     environment {
         DOCKERHUB = credentials('dockerhub-creds')
-        
         MINIO_SECRET = credentials('minio-secret-key')
+        VAULT_PASS = credentials('ansible-vault-pass')
         
         IMAGE_NAME = "amazon-rating-prediction"
         IMAGE_TAG = "pr-${env.BUILD_NUMBER}"
@@ -39,11 +39,14 @@ pipeline {
         stage('Run Integration Tests') {
             steps {
                 echo "Run tests..."
+
+                sh 'echo "$VAULT_PASS" > vault_pass.txt'
+
                 sh '''
                     . dvc-venv/bin/activate
                     pip install -r requirements.txt
                     pip install pytest httpx
-                    
+
                     pytest tests/
                 '''
             }
@@ -73,12 +76,15 @@ pipeline {
     post {
         always {
             echo "Cleanup..."
+            sh 'rm -f vault_pass.txt || true'
             sh 'docker rmi ${IMAGE_NAME}:${IMAGE_TAG} || true'
             sh 'docker logout || true'
         }
         success {
             echo "Pipeline done! Image in DockerHub."
-            build job: 'amazon-rating-prediction-2-CD', wait: true
+            build job: 'amazon-rating-prediction-3-CD', 
+            parameters: [string(name: 'SOURCE_BRANCH', value: env.GIT_BRANCH)], 
+            wait: true
         }
         failure {
             echo "Pipeline failure."

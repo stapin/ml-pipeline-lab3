@@ -9,3 +9,5 @@ scikit-learn
 uvicorn==0.42.0
 oracledb
 python-dotenv
+ansible-vault
+pyyaml
