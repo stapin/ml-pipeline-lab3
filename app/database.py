@@ -1,6 +1,6 @@
 import oracledb
 from ansible_vault import Vault
-import yaml
+
 
 class OracleDBManager:
     def __init__(self, vault_path: str = "secrets.vault", vault_pass_path: str = "vault_pass.txt"):
@@ -22,7 +22,7 @@ class OracleDBManager:
             with open(vault_path, 'r') as f:
                 decrypted_data = vault.load(f.read())
                 
-            return yaml.safe_load(decrypted_data)
+            return decrypted_data
         except Exception as e:
             raise RuntimeError(f"Error reading secret storage: {e}")
 
