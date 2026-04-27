@@ -1,0 +1,13 @@
+---
+- name: Deploy MLOps Infrastructure
+  hosts: localhost
+  connection: local
+  vars_files:
+    - secrets.vault
+  tasks:
+    - name: Start infrastructure via Docker Compose
+      shell: docker compose up -d --wait
+      environment:
+        DB_USR: "{{ DB_USER }}"
+        DB_PSW: "{{ DB_PASSWORD }}"
+        API_IMAGE: "{{ lookup('env', 'API_IMAGE') }}"
