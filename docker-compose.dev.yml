@@ -1,0 +1,6 @@
+version: '3.8'
+
+services:
+  amazon-rating-prediction:
+    volumes:
+      - ./models:/app/models:ro

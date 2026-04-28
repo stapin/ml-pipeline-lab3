@@ -1,6 +1,9 @@
 #!/bin/bash
-read -s -p "Enter Vault Password: " VAULT_PASS
-echo ""
+if [ -z "$VAULT_PASS" ]; then
+    read -s -p "Enter Vault Password: " VAULT_PASS
+    echo ""
+fi
+
 echo $VAULT_PASS > vault_pass.txt
 
 echo "Starting infrastructure..."
@@ -10,5 +13,5 @@ docker run --rm \
   -v "$(pwd)":"$(pwd)" -w "$(pwd)" \
   docker:cli \
   sh -c "apk add --no-cache docker-cli-compose ansible && ansible-playbook deploy.yml --vault-password-file vault_pass.txt"
-  
+
 echo "Done! Application is running."

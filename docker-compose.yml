@@ -27,7 +27,7 @@ services:
       - DB_PASSWORD=${DB_PSW}
       - DB_HOST=oracle-db
       - DB_PORT=1521
-      - DB_SERVICE=FREEPDB1 # Дефолтный сервис в образе gvenzl
+      - DB_SERVICE=FREEPDB1
     volumes:
       - ./vault_pass.txt:/app/vault_pass.txt:ro
     depends_on:

@@ -6,7 +6,10 @@
     - secrets.vault
   tasks:
     - name: Start infrastructure via Docker Compose
-      shell: docker compose up -d --wait
+      shell: >
+        docker compose -f docker-compose.yml 
+        {% if not lookup('env', 'API_IMAGE') %}-f docker-compose.dev.yml {% endif %}
+        up -d --wait
       environment:
         DB_USR: "{{ DB_USER }}"
         DB_PSW: "{{ DB_PASSWORD }}"
