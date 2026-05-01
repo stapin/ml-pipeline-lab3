@@ -1,17 +1,20 @@
 from fastapi import FastAPI, Depends
 from contextlib import asynccontextmanager
+from functools import lru_cache
 from app.schemas import ReviewRequest, ReviewResponse
 from app.model import Predictor
 
 from app.database import OracleDBManager
 
-db_manager = OracleDBManager()
-
 predictor = Predictor()
 
+@lru_cache()
+def get_db_manager() -> OracleDBManager:
+    return OracleDBManager()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    db_manager = get_db_manager()
     db_manager.init_database()
     
     yield
@@ -21,9 +24,6 @@ app = FastAPI(
     description="API для предсказания рейтинга товара по тексту отзыва",
     lifespan=lifespan
 )
-
-def get_db_manager() -> OracleDBManager:
-    return db_manager
 
 @app.post("/predict", response_model=ReviewResponse)
 def predict_rating(request: ReviewRequest, db: OracleDBManager = Depends(get_db_manager)):
