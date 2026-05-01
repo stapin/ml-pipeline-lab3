@@ -40,8 +40,6 @@ pipeline {
             steps {
                 echo "Run tests..."
 
-                sh 'echo "$VAULT_PASS" > vault_pass.txt'
-
                 sh '''
                     . dvc-venv/bin/activate
                     pip install -r requirements.txt
@@ -76,7 +74,6 @@ pipeline {
     post {
         always {
             echo "Cleanup..."
-            sh 'rm -f vault_pass.txt || true'
             sh 'docker rmi ${IMAGE_NAME}:${IMAGE_TAG} || true'
             sh 'docker logout || true'
         }

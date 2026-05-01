@@ -5,5 +5,5 @@
 .git
 .gitignore
 
-vault_pass.txt
+.env
 

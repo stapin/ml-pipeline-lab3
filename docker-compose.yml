@@ -1,20 +1,35 @@
 version: '3.8'
 
 services:
+  vault-provisioner:
+    environment:
+      - VAULT_PASS=${VAULT_PASS}
+    build: 
+      context: .
+      dockerfile: ./vault/Dockerfile
+    volumes:
+      - secrets-flow:/shared
+
   oracle-db:
     image: gvenzl/oracle-free:slim
     container_name: oracle_db
     environment:
-      - ORACLE_PASSWORD=${DB_PSW}
-      - APP_USER=${DB_USR}
-      - APP_USER_PASSWORD=${DB_PSW}
+      - APP_USER=${DB_USER}
+      - ORACLE_PASSWORD_FILE=/run/secrets/db_pass.txt
+      - APP_USER_PASSWORD_FILE=/run/secrets/db_pass.txt
     ports:
       - "1521:1521"
+    volumes:
+      - secrets-flow:/run/secrets
     healthcheck:
       test: ["CMD", "healthcheck.sh"]
       interval: 10s
       timeout: 5s
       retries: 10
+    depends_on:
+      vault-provisioner:
+        condition: service_completed_successfully
+
   amazon-rating-prediction:
     build: .
     image: ${API_IMAGE:-rating-prediction-local}
@@ -23,13 +38,15 @@ services:
       - "8000:8000"
     restart: unless-stopped
     environment:
-      - DB_USER=${DB_USR}
-      - DB_PASSWORD=${DB_PSW}
-      - DB_HOST=oracle-db
-      - DB_PORT=1521
-      - DB_SERVICE=FREEPDB1
+      - DB_USER=${DB_USER}
+      - DB_HOST=${DB_HOST}
+      - DB_PORT=${DB_PORT}
+      - DB_SERVICE=${DB_SERVICE}
     volumes:
-      - ./vault_pass.txt:/app/vault_pass.txt:ro
+      - secrets-flow:/run/secrets
     depends_on:
       oracle-db:
         condition: service_healthy
+
+volumes:
+  secrets-flow:

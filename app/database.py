@@ -1,30 +1,16 @@
 import oracledb
-from ansible_vault import Vault
+import os
 
 
 class OracleDBManager:
-    def __init__(self, vault_path: str = "secrets.vault", vault_pass_path: str = "vault_pass.txt"):
-        self.secrets = self._load_secrets(vault_path, vault_pass_path)
-
-        self.user = self.secrets.get("DB_USER")
-        self.password = self.secrets.get("DB_PASSWORD")
-        self.host = self.secrets.get("DB_HOST", "localhost")
-        self.port = self.secrets.get("DB_PORT", "1521")
-        self.service = self.secrets.get("DB_SERVICE", "FREEPDB1")
+    def __init__(self):
+        with open("/run/secrets/db_pass.txt", "r") as f:
+            self.password = f.read().strip()
+        self.user = os.getenv("DB_USER")
+        self.host = os.getenv("DB_HOST", "localhost")
+        self.port = os.getenv("DB_PORT", "1521")
+        self.service = os.getenv("DB_SERVICE", "FREEPDB1")
         self.dsn = f"{self.host}:{self.port}/{self.service}"
-
-    def _load_secrets(self, vault_path: str, vault_pass_path: str) -> dict:
-        try:
-            with open(vault_pass_path, 'r') as f:
-                vault_pass = f.read().strip()
-            
-            vault = Vault(vault_pass)
-            with open(vault_path, 'r') as f:
-                decrypted_data = vault.load(f.read())
-                
-            return decrypted_data
-        except Exception as e:
-            raise RuntimeError(f"Error reading secret storage: {e}")
 
     def _get_connection(self):
         return oracledb.connect(

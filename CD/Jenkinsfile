@@ -21,11 +21,14 @@ pipeline {
                 
                 sh "docker pull $DOCKERHUB_USR/$IMAGE_NAME:latest"
 
-                sh 'echo "$VAULT_PASS" > vault_pass.txt'
-                
                 echo "Starting infrastructure and waiting for healthchecks..."
                 withEnv(["API_IMAGE=$DOCKERHUB_USR/$IMAGE_NAME:latest"]) {
-                    sh 'chmod +x start.sh && ./start.sh'
+                    sh '''
+                        cp .env.example .env
+                        echo "VAULT_PASS=${VAULT_PASS}" >> .env
+
+                        docker compose up -d
+                    '''
                 }
             }
         }
@@ -62,7 +65,7 @@ pipeline {
         }
         cleanup {
             sh "docker compose down -v || true"
-            sh "rm -f vault_pass.txt || true"
+            sh "rm -f .env || true"
             sh "docker logout || true"
         }
     }
