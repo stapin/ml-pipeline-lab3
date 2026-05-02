@@ -2,13 +2,13 @@ version: '3.8'
 
 services:
   vault-provisioner:
-    environment:
-      - VAULT_PASS=${VAULT_PASS}
     build: 
       context: .
       dockerfile: ./vault/Dockerfile
     volumes:
       - secrets-flow:/shared
+    secrets:
+      - vault_password
 
   oracle-db:
     image: gvenzl/oracle-free:slim
@@ -66,3 +66,7 @@ services:
 
 volumes:
   secrets-flow:
+
+secrets:
+  vault_password:
+    environment: "VAULT_PASS"
