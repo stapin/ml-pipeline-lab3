@@ -15,41 +15,24 @@ pipeline {
             }
         }
 
-        stage('Deploy Container Locally') {
+        stage('Run Scenario Tests') {
             steps {
                 sh "docker rm -f $DB_CONTAINER_NAME || true"
                 
                 sh "docker pull $DOCKERHUB_USR/$IMAGE_NAME:latest"
 
                 echo "Starting infrastructure and waiting for healthchecks..."
-                withEnv(["API_IMAGE=$DOCKERHUB_USR/$IMAGE_NAME:latest"]) {
+                withEnv(["API_IMAGE=$DOCKERHUB_USR/$IMAGE_NAME:latest", "API_URL=http://amazon-rating-prediction:8000"]) {
                     sh '''
                         cp .env.example .env
                         echo "VAULT_PASS=${VAULT_PASS}" >> .env
 
-                        docker compose up -d
+                        docker compose --profile test run --rm integration-tests
                     '''
                 }
             }
         }
 
-        stage('Run Scenario Tests') {
-            steps {
-                script {
-                    
-                    withEnv(["API_URL=http://amazon-rating-prediction:8000"]) {
-                        sh '''
-                            docker compose --profile test run --rm integration-tests
-                        '''
-                    }
-                }
-            }
-            post {
-                always {
-                    sh 'docker compose down -v'
-                }
-            }
-        }
     }
 
     post {
