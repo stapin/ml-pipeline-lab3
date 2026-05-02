@@ -25,7 +25,7 @@ pipeline {
                 withEnv(["API_IMAGE=$DOCKERHUB_USR/$IMAGE_NAME:latest", "API_URL=http://amazon-rating-prediction:8000"]) {
                     sh '''
                         cp .env.example .env
-                        docker compose --profile test run --rm integration-tests
+                        docker compose --profile test run --build --rm integration-tests
                     '''
                 }
             }
