@@ -24,6 +24,7 @@ pipeline {
                 echo "Starting infrastructure and waiting for healthchecks..."
                 withEnv(["API_IMAGE=$DOCKERHUB_USR/$IMAGE_NAME:latest", "API_URL=http://amazon-rating-prediction:8000"]) {
                     sh '''
+                        cp .env.example .env
                         docker compose --profile test run --rm integration-tests
                     '''
                 }
