@@ -48,5 +48,19 @@ services:
       oracle-db:
         condition: service_healthy
 
+  integration-tests:
+    image: python:3.9-slim
+    profiles: ["test"]
+    volumes:
+      - ./tests:/app/tests
+    working_dir: /app
+    environment:
+      - API_URL=http://amazon-rating-prediction:8000
+    command: >
+      sh -c "pip install requests && python tests/run_scenario.py"
+    depends_on:
+      amazon-rating-prediction:
+        condition: service_started
+
 volumes:
   secrets-flow:

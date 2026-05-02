@@ -36,19 +36,17 @@ pipeline {
         stage('Run Scenario Tests') {
             steps {
                 script {
-                    def CONTAINER_IP = sh(script: "docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' rating-prediction", returnStdout: true).trim()
                     
-                    echo "API Container IP is: ${CONTAINER_IP}"
-                    
-                    withEnv(["API_URL=http://${CONTAINER_IP}:8000"]) {
+                    withEnv(["API_URL=http://amazon-rating-prediction:8000"]) {
                         sh '''
-                            python3 -m venv venv-cd
-                            . venv-cd/bin/activate
-                            pip install requests
-                            
-                            python3 tests/run_scenario.py
+                            docker compose --profile test run --rm integration-tests
                         '''
                     }
+                }
+            }
+            post {
+                always {
+                    sh 'docker compose down -v'
                 }
             }
         }
