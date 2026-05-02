@@ -49,15 +49,17 @@ services:
         condition: service_healthy
 
   integration-tests:
-    image: python:3.9-slim
+    build: 
+      context: .
+      dockerfile_inline: |
+        FROM python:3.9-slim
+        WORKDIR /app
+        COPY ./tests /app/tests
+        RUN pip install requests
+        CMD ["python", "tests/run_scenario.py"]
     profiles: ["test"]
-    volumes:
-      - ./tests:/app/tests
-    working_dir: /app
     environment:
       - API_URL=http://amazon-rating-prediction:8000
-    command: >
-      sh -c "pip install requests && python tests/run_scenario.py"
     depends_on:
       amazon-rating-prediction:
         condition: service_started
